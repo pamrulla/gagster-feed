@@ -14,5 +14,5 @@ func Routes() *chi.Mux {
 }
 
 func Hello(w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, r, "Hello, welcome")
+	render.JSON(w, r, "Hello, welcome to gagster")
 }

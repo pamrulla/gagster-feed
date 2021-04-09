@@ -1,0 +1,13 @@
+steps:
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/focused-pipe-309806/gagster-feed', '.']
+# Push the container image to Container Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/focused-pipe-309806/gagster-feed']
+# Deploy container image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: ['run', 'deploy', 'gagster-feed', '--image', 'gcr.io/focused-pipe-309806/gagster-feed', '--region', 'us-west1', '--platform', 'managed', '-allow-unauthenticated']
+images:
+- gcr.io/focused-pipe-309806/gagster-feed

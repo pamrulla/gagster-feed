@@ -43,5 +43,5 @@ func main() {
 	if err := chi.Walk(router, walkFunc); err != nil {
 		log.Panicf("Logging err: %s\n", err.Error())
 	}
-	log.Fatal(http.ListenAndServe(":3000", router))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
