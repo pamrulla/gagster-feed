@@ -28,7 +28,15 @@ func Routes() *chi.Mux {
 	router.Route("/api", func(r chi.Router) {
 		r.Mount("/hello", hello.Routes())
 		r.Route("/v1", func(r1 chi.Router) {
-			r1.Get("/users", v1.GetUsers)
+			r1.Route("/users", func(r chi.Router) {
+				r.Get("/", v1.GetUsers)
+				r.Route("/{user_id}", func(r chi.Router) {
+					r.Get("/", v1.GetUser)
+					r.Post("/", v1.CreateUser)
+					r.Put("/", v1.UpdateUser)
+					r.Delete("/", v1.DeleteUser)
+				})
+			})
 		})
 	})
 	return router

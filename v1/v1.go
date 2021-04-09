@@ -27,3 +27,19 @@ func Routes() *chi.Mux {
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	user.GetUsers(w, r)
 }
+
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	user.Create(w, r)
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	user.Update(w, r)
+}
+
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	user.Delete(w, r)
+}
+
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	user.Get(w, r)
+}

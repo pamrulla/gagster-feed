@@ -1,8 +1,12 @@
 package user
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
 	"github.com/pamrulla/gagster-feed/models"
@@ -19,4 +23,83 @@ func Init() {
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, users)
+}
+
+func Create(w http.ResponseWriter, r *http.Request) {
+	req, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		return
+	}
+	var u models.User
+	err = json.Unmarshal(req, &u)
+	if err != nil {
+		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		return
+	}
+	users = append(users, u)
+	render.JSON(w, r, "Successfully added new user")
+}
+
+func Update(w http.ResponseWriter, r *http.Request) {
+	req, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		return
+	}
+	var u models.User
+	err = json.Unmarshal(req, &u)
+	if err != nil {
+		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		return
+	}
+
+	isFound := false
+
+	for _, a := range users {
+		if a.Id == u.Id {
+			a.First_Name = u.First_Name
+			a.Last_Name = u.Last_Name
+			isFound = true
+			break
+		}
+	}
+	if isFound {
+		render.JSON(w, r, "Successfully updated user")
+	} else {
+		http.Error(w, "User not found", http.StatusNotFound)
+	}
+}
+
+func Delete(w http.ResponseWriter, r *http.Request) {
+	vars := chi.URLParam(r, "user_id")
+	user_id, _ := strconv.Atoi(vars)
+
+	isFound := false
+
+	for i, a := range users {
+		if a.Id == user_id {
+			users = append(users[:i], users[i+1:]...)
+			isFound = true
+			break
+		}
+	}
+	if isFound {
+		render.JSON(w, r, "Successfully deleted user")
+	} else {
+		http.Error(w, "User not found", http.StatusNotFound)
+	}
+}
+
+func Get(w http.ResponseWriter, r *http.Request) {
+	vars := chi.URLParam(r, "user_id")
+	user_id, _ := strconv.Atoi(vars)
+
+	for _, a := range users {
+		if a.Id == user_id {
+			render.JSON(w, r, a)
+			return
+		}
+	}
+	http.Error(w, "User not found", http.StatusNotFound)
 }
