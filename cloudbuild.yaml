@@ -8,6 +8,6 @@ steps:
 # Deploy container image to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'gagster-feed', '--image', 'gcr.io/focused-pipe-309806/gagster-feed', '--region', 'us-west1', '--platform', 'managed', '-allow-unauthenticated']
+  args: ['run', 'deploy', 'gagster-feed', '--image', 'gcr.io/focused-pipe-309806/gagster-feed', '--region', 'us-west1', '--platform', 'managed']
 images:
 - gcr.io/focused-pipe-309806/gagster-feed
