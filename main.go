@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	hello "github.com/pamrulla/gagster-feed/pkg"
 	v1 "github.com/pamrulla/gagster-feed/v1"
@@ -43,5 +45,9 @@ func main() {
 	if err := chi.Walk(router, walkFunc); err != nil {
 		log.Panicf("Logging err: %s\n", err.Error())
 	}
-	log.Fatal(http.ListenAndServe(":3000", router))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), router))
 }
