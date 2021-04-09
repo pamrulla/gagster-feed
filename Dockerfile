@@ -30,18 +30,15 @@ WORKDIR /dist
 RUN cp /build/main .
 
 # Export necessary port
-# EXPOSE 3000
+EXPOSE 3000
 
 # Command to run when starting the container
-# CMD ["/dist/main"]
+CMD ["/dist/main"]
 
 # Build a small image
-FROM scratch
+# FROM scratch
 
-COPY --from=builder /dist/ /
-
-# CMD ["/bin/sh"]
-# RUN echo $(ls -1 /)
+# COPY --from=builder /dist/ /
 
 # Command to run the executable
-ENTRYPOINT ["/main"]
+# ENTRYPOINT ["/main"]
