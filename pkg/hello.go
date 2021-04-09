@@ -9,8 +9,7 @@ import (
 
 func Routes() *chi.Mux {
 	router := chi.NewRouter()
-	router.Get("/hello", Hello)
-
+	router.Get("/", Hello)
 	return router
 }
 

@@ -4,13 +4,17 @@ import (
 	"log"
 	"net/http"
 
+	hello "github.com/pamrulla/gagster-feed/pkg"
+	v1 "github.com/pamrulla/gagster-feed/v1"
+
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/pamrulla/gagster-feed/pkg/hello"
 )
 
 func Routes() *chi.Mux {
+	v1.Init()
+
 	router := chi.NewRouter()
 	router.Use(
 		render.SetContentType(render.ContentTypeJSON), // Set Content-Type header as application/json
@@ -19,8 +23,11 @@ func Routes() *chi.Mux {
 		middleware.Recoverer,       // Recover from panics without crashing the server
 	)
 
-	router.Route("/v1", func(r chi.Router) {
-		r.Mount("/api/hello", hello.Routes())
+	router.Route("/api", func(r chi.Router) {
+		r.Mount("/hello", hello.Routes())
+		r.Route("/v1", func(r1 chi.Router) {
+			r1.Get("/users", v1.GetUsers)
+		})
 	})
 	return router
 }
