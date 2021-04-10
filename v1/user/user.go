@@ -56,10 +56,10 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	isFound := false
 
-	for _, a := range users {
+	for i, a := range users {
 		if a.Id == u.Id {
-			a.First_Name = u.First_Name
-			a.Last_Name = u.Last_Name
+			users[i].First_Name = u.First_Name
+			users[i].Last_Name = u.Last_Name
 			isFound = true
 			break
 		}
@@ -98,6 +98,34 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	for _, a := range users {
 		if a.Id == user_id {
 			render.JSON(w, r, a)
+			return
+		}
+	}
+	http.Error(w, "User not found", http.StatusNotFound)
+}
+
+func Enable(w http.ResponseWriter, r *http.Request) {
+	vars := chi.URLParam(r, "user_id")
+	user_id, _ := strconv.Atoi(vars)
+
+	for i, a := range users {
+		if a.Id == user_id {
+			users[i].IsEnabled = true
+			render.JSON(w, r, "Successfully enabled user")
+			return
+		}
+	}
+	http.Error(w, "User not found", http.StatusNotFound)
+}
+
+func Disable(w http.ResponseWriter, r *http.Request) {
+	vars := chi.URLParam(r, "user_id")
+	user_id, _ := strconv.Atoi(vars)
+
+	for i, a := range users {
+		if a.Id == user_id {
+			users[i].IsEnabled = false
+			render.JSON(w, r, "Successfully disabled user")
 			return
 		}
 	}

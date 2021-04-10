@@ -9,6 +9,7 @@ type User struct {
 	Email        string    `json:"Email"`
 	Password     string    `json:"Password"`
 	Created_Date time.Time `json:"Created_Date"`
+	IsEnabled    bool      `json:"IsEnabled"`
 }
 
 type Users []User
