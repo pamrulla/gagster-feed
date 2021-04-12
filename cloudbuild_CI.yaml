@@ -1,0 +1,6 @@
+steps:
+- name: unit-test
+  args: ['go', 'test', './..', '-v']
+- name: build-app
+  args: ['go', 'build', '.']
+
