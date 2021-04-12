@@ -1,62 +1,79 @@
 package heart
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/pamrulla/gagster-feed/database"
 	"github.com/pamrulla/gagster-feed/models"
+	"gorm.io/gorm"
 )
 
-var hearts models.Hearts
-
-func Init() {}
-
-func getParamFromRequest(r *http.Request, key string) int {
-	vars := chi.URLParam(r, key)
-	val, _ := strconv.Atoi(vars)
-	return val
+type HeartRepo struct {
+	Db *gorm.DB
 }
 
-func GetHearts(w http.ResponseWriter, r *http.Request) {
-	gag_id := getParamFromRequest(r, "gag_id")
-	res := 0
-	for _, g := range hearts {
-		if g.Gag_Id == gag_id {
-			fmt.Println(res)
-			res++
-		}
+func New() *HeartRepo {
+	db := database.InitDb()
+	db.AutoMigrate(models.Heart{})
+	return &HeartRepo{Db: db}
+}
+
+func (gr *HeartRepo) checkErr(err error, w http.ResponseWriter) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, "Heart not found", http.StatusNotFound)
+	} else {
+		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
 	}
+}
+
+func (gr *HeartRepo) GetHearts(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
+	var g models.Hearts
+	err := models.GetHearts(gr.Db, &g, gag_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
+	res := len(g)
+
 	render.JSON(w, r, res)
 }
 
-func Create(w http.ResponseWriter, r *http.Request) {
-	gag_id := getParamFromRequest(r, "gag_id")
-	user_id := getParamFromRequest(r, "user_id")
+func (gr *HeartRepo) Create(w http.ResponseWriter, r *http.Request) {
+	gag_id, err := strconv.Atoi(chi.URLParam(r, "gag_id"))
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	user_id, err := strconv.Atoi(chi.URLParam(r, "user_id"))
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
 
-	h := models.Heart{Gag_Id: gag_id, User_Id: user_id, Liked_On: time.Now().UTC()}
-	hearts = append(hearts, h)
+	h := models.Heart{Gag_Id: gag_id, User_Id: user_id}
+	err = models.CreateHeart(gr.Db, &h)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
+
 	render.JSON(w, r, "Successfully liked the gag")
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	gag_id := getParamFromRequest(r, "gag_id")
-	user_id := getParamFromRequest(r, "user_id")
-	isFound := false
+func (gr *HeartRepo) Delete(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
+	user_id := chi.URLParam(r, "user_id")
+	var h models.Heart
+	err := models.DeleteHeart(gr.Db, &h, gag_id, user_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
 
-	for i, a := range hearts {
-		if a.Gag_Id == gag_id && user_id == a.User_Id {
-			hearts = append(hearts[:i], hearts[i+1:]...)
-			isFound = true
-			break
-		}
-	}
-	if isFound {
-		render.JSON(w, r, "Successfully dis-liked the gag")
-	} else {
-		http.Error(w, "Gag Like not found", http.StatusNotFound)
-	}
+	http.Error(w, "Successfully dis-liked gag", http.StatusNotFound)
 }

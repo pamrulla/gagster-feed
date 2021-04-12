@@ -37,10 +37,10 @@ func Routes() *chi.Mux {
 					r.Delete("/", v1.DeleteUser)
 				})
 				r.Put("/enable/{user_id}", v1.EnableUser)
-				r.Put("/disable/{user_id}", v1.EnableUser)
+				r.Put("/disable/{user_id}", v1.DisableUser)
 			})
-			r.Route("/gags/{user_id}", func(r chi.Router) {
-				r.Get("/", v1.GetGags)
+			r.Get("/gags/{user_id}", v1.GetGags)
+			r.Route("/gags", func(r chi.Router) {
 				r.Post("/", v1.CreateGag)
 				r.Route("/{gag_id}", func(r chi.Router) {
 					r.Get("/", v1.GetGag)
@@ -50,6 +50,7 @@ func Routes() *chi.Mux {
 			})
 			r.Put("/gags/enable/{gag_id}", v1.EnableUser)
 			r.Put("/gags/disable/{gag_id}", v1.EnableUser)
+
 			r.Route("/hearts/{gag_id}", func(r chi.Router) {
 				r.Get("/", v1.GetHearts)
 				r.Route("/{user_id}", func(r chi.Router) {
