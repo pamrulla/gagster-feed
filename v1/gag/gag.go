@@ -2,42 +2,48 @@ package gag
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/pamrulla/gagster-feed/database"
 	"github.com/pamrulla/gagster-feed/models"
+	"gorm.io/gorm"
 )
 
-var gags models.Gags
+type GagRepo struct {
+	Db *gorm.DB
+}
 
-func Init() {
-	gags = models.Gags{
-		models.Gag{Id: 1, User_Id: 1, Price: 100, Path: "path1"},
-		models.Gag{Id: 2, User_Id: 2, Price: 110, Path: "path2"},
+func New() *GagRepo {
+	db := database.InitDb()
+	db.AutoMigrate(models.Gag{})
+	return &GagRepo{Db: db}
+}
+
+func (gr *GagRepo) checkErr(err error, w http.ResponseWriter) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		http.Error(w, "Gag not found", http.StatusNotFound)
+	} else {
+		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
 	}
 }
 
-func getUserIdFromRequest(r *http.Request) int {
-	vars := chi.URLParam(r, "user_id")
-	user_id, _ := strconv.Atoi(vars)
-	return user_id
-}
-
-func GetGags(w http.ResponseWriter, r *http.Request) {
-	user_id := getUserIdFromRequest(r)
+func (gr *GagRepo) GetGags(w http.ResponseWriter, r *http.Request) {
+	user_id := chi.URLParam(r, "user_id")
 	var res models.Gags
-	for _, g := range gags {
-		if g.User_Id == user_id {
-			res = append(res, g)
-		}
+	err := models.GetGags(gr.Db, &res, user_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
 	}
 	render.JSON(w, r, res)
 }
 
-func Create(w http.ResponseWriter, r *http.Request) {
+func (gr *GagRepo) Create(w http.ResponseWriter, r *http.Request) {
 	req, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Invalid data sent", http.StatusBadRequest)
@@ -50,14 +56,17 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id := getUserIdFromRequest(r)
-	u.User_Id = user_id
-
-	gags = append(gags, u)
+	user_id := chi.URLParam(r, "user_id")
+	u.User_Id, _ = strconv.Atoi(user_id)
+	err = models.CreateGag(gr.Db, &u)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
 	render.JSON(w, r, "Successfully added new gag")
 }
 
-func Update(w http.ResponseWriter, r *http.Request) {
+func (gr *GagRepo) Update(w http.ResponseWriter, r *http.Request) {
 	req, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Invalid data sent", http.StatusBadRequest)
@@ -70,83 +79,70 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isFound := false
-	user_id := getUserIdFromRequest(r)
-
-	for i, a := range gags {
-		if a.Id == u.Id && a.User_Id == user_id {
-			gags[i].Path = u.Path
-			gags[i].Price = u.Price
-			isFound = true
-			break
-		}
+	err = models.UpdateGag(gr.Db, &u)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
 	}
-	if isFound {
-		render.JSON(w, r, "Successfully updated gag")
-	} else {
-		http.Error(w, "Gag not found", http.StatusNotFound)
-	}
+	render.JSON(w, r, u)
 }
 
-func Delete(w http.ResponseWriter, r *http.Request) {
-	vars := chi.URLParam(r, "gag_id")
-	gag_id, _ := strconv.Atoi(vars)
+func (gr *GagRepo) Delete(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
 
-	user_id := getUserIdFromRequest(r)
-	isFound := false
+	var gag models.Gag
+	err := models.DeleteGag(gr.Db, &gag, gag_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
 
-	for i, a := range gags {
-		if a.Id == gag_id && user_id == a.User_Id {
-			gags = append(gags[:i], gags[i+1:]...)
-			isFound = true
-			break
-		}
-	}
-	if isFound {
-		render.JSON(w, r, "Successfully deleted gag")
-	} else {
-		http.Error(w, "Gag not found", http.StatusNotFound)
-	}
+	render.JSON(w, r, "Successfully deleted gag")
 }
 
-func Get(w http.ResponseWriter, r *http.Request) {
-	vars := chi.URLParam(r, "gag_id")
-	gag_id, _ := strconv.Atoi(vars)
-	user_id := getUserIdFromRequest(r)
-
-	for _, a := range gags {
-		if a.Id == gag_id && a.User_Id == user_id {
-			render.JSON(w, r, a)
-			return
-		}
+func (gr *GagRepo) Get(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
+	var g models.Gag
+	err := models.GetGag(gr.Db, &g, gag_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
 	}
-	http.Error(w, "Gag not found", http.StatusNotFound)
+	render.JSON(w, r, g)
 }
 
-func Enable(w http.ResponseWriter, r *http.Request) {
-	vars := chi.URLParam(r, "gag_id")
-	gag_id, _ := strconv.Atoi(vars)
+func (gr *GagRepo) Enable(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
 
-	for i, a := range gags {
-		if a.Id == gag_id {
-			gags[i].IsEnabled = true
-			render.JSON(w, r, "Successfully enabled gag")
-			return
-		}
+	var g models.Gag
+	err := models.GetGag(gr.Db, &g, gag_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
 	}
-	http.Error(w, "Gag not found", http.StatusNotFound)
+	g.IsEnabled = true
+	err = models.UpdateGag(gr.Db, &g)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
+	render.JSON(w, r, "Successfully enabled gag")
 }
 
-func Disable(w http.ResponseWriter, r *http.Request) {
-	vars := chi.URLParam(r, "gag_id")
-	gag_id, _ := strconv.Atoi(vars)
+func (gr *GagRepo) Disable(w http.ResponseWriter, r *http.Request) {
+	gag_id := chi.URLParam(r, "gag_id")
 
-	for i, a := range gags {
-		if a.Id == gag_id {
-			gags[i].IsEnabled = false
-			render.JSON(w, r, "Successfully disabled gag")
-			return
-		}
+	var g models.Gag
+	err := models.GetGag(gr.Db, &g, gag_id)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
 	}
-	http.Error(w, "Gag not found", http.StatusNotFound)
+	g.IsEnabled = false
+	err = models.UpdateGag(gr.Db, &g)
+	if err != nil {
+		gr.checkErr(err, w)
+		return
+	}
+	render.JSON(w, r, "Successfully disabled gag")
 }
