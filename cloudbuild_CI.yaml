@@ -1,6 +1,6 @@
 steps:
 - name: golang
-  args: ['go', 'test', './..', '-v']
+  args: ['go', 'test', './...', '-v']
 - name: golang
   args: ['go', 'build', '.']
 
