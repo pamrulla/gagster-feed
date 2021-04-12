@@ -15,18 +15,20 @@ import (
 )
 
 type UserRepo struct {
-	Db *gorm.DB
+	Db  *gorm.DB
+	usr models.UserHandlerInterface
 }
 
 func New() *UserRepo {
 	db := database.InitDb()
 	db.AutoMigrate(&models.User{})
-	return &UserRepo{Db: db}
+	uh := models.UserHandler{}
+	return &UserRepo{Db: db, usr: uh}
 }
 
 func (ur *UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users models.Users
-	err := models.GetUsers(ur.Db, &users)
+	err := ur.usr.GetUsers(ur.Db, &users)
 	if err != nil {
 		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
 		return
@@ -46,7 +48,7 @@ func (ur *UserRepo) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
-	err = models.CreateUser(ur.Db, &u)
+	err = ur.usr.CreateUser(ur.Db, &u)
 	if err != nil {
 		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
 		return
@@ -67,7 +69,7 @@ func (ur *UserRepo) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.UpdateUser(ur.Db, &u)
+	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -84,7 +86,7 @@ func (ur *UserRepo) Delete(w http.ResponseWriter, r *http.Request) {
 	var u models.User
 	vars := chi.URLParam(r, "user_id")
 
-	err := models.DeleteUser(ur.Db, &u, vars)
+	err := ur.usr.DeleteUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -100,7 +102,7 @@ func (ur *UserRepo) Delete(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) Get(w http.ResponseWriter, r *http.Request) {
 	vars := chi.URLParam(r, "user_id")
 	var u models.User
-	err := models.GetUser(ur.Db, &u, vars)
+	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -116,7 +118,7 @@ func (ur *UserRepo) Get(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) Enable(w http.ResponseWriter, r *http.Request) {
 	vars := chi.URLParam(r, "user_id")
 	var u models.User
-	err := models.GetUser(ur.Db, &u, vars)
+	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -127,7 +129,7 @@ func (ur *UserRepo) Enable(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u.IsEnabled = true
-	err = models.UpdateUser(ur.Db, &u)
+	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -143,7 +145,7 @@ func (ur *UserRepo) Enable(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) Disable(w http.ResponseWriter, r *http.Request) {
 	vars := chi.URLParam(r, "user_id")
 	var u models.User
-	err := models.GetUser(ur.Db, &u, vars)
+	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)
@@ -154,7 +156,7 @@ func (ur *UserRepo) Disable(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u.IsEnabled = false
-	err = models.UpdateUser(ur.Db, &u)
+	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, "User not found", http.StatusNotFound)

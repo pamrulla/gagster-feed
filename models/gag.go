@@ -52,3 +52,8 @@ func DeleteGag(db *gorm.DB, gag *Gag, id string) (err error) {
 	db.Where("id = ?", id).Delete(gag)
 	return nil
 }
+
+//empty Gag table
+func EmptyGagTable(db *gorm.DB) {
+	db.Unscoped().Where("1 = 1").Delete(&Gag{})
+}

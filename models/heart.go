@@ -48,3 +48,8 @@ func DeleteHeart(db *gorm.DB, hr *Heart, gag_id string, user_id string) (err err
 	db.Where("gag_id = ? && user_id = ?", gag_id, user_id).Delete(hr)
 	return nil
 }
+
+//empty Heart table
+func EmptyHeartTable(db *gorm.DB) {
+	db.Unscoped().Where("1 = 1").Delete(&Heart{})
+}

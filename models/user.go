@@ -15,8 +15,19 @@ type User struct {
 
 type Users []User
 
+type UserHandlerInterface interface {
+	CreateUser(db *gorm.DB, User *User) (err error)
+	GetUsers(db *gorm.DB, User *Users) (err error)
+	GetUser(db *gorm.DB, User *User, id string) (err error)
+	UpdateUser(db *gorm.DB, User *User) (err error)
+	DeleteUser(db *gorm.DB, User *User, id string) (err error)
+	EmptyUserTable(db *gorm.DB)
+}
+
+type UserHandler struct{}
+
 //create a user
-func CreateUser(db *gorm.DB, User *User) (err error) {
+func (u UserHandler) CreateUser(db *gorm.DB, User *User) (err error) {
 	err = db.Create(User).Error
 	if err != nil {
 		return err
@@ -25,7 +36,7 @@ func CreateUser(db *gorm.DB, User *User) (err error) {
 }
 
 //get users
-func GetUsers(db *gorm.DB, User *Users) (err error) {
+func (u UserHandler) GetUsers(db *gorm.DB, User *Users) (err error) {
 	err = db.Find(User).Error
 	if err != nil {
 		return err
@@ -34,7 +45,7 @@ func GetUsers(db *gorm.DB, User *Users) (err error) {
 }
 
 //get user by id
-func GetUser(db *gorm.DB, User *User, id string) (err error) {
+func (u UserHandler) GetUser(db *gorm.DB, User *User, id string) (err error) {
 	err = db.Where("ID = ?", id).First(User).Error
 	if err != nil {
 		return err
@@ -43,13 +54,18 @@ func GetUser(db *gorm.DB, User *User, id string) (err error) {
 }
 
 //update user
-func UpdateUser(db *gorm.DB, User *User) (err error) {
+func (u UserHandler) UpdateUser(db *gorm.DB, User *User) (err error) {
 	db.Save(User)
 	return nil
 }
 
 //delete user
-func DeleteUser(db *gorm.DB, User *User, id string) (err error) {
+func (u UserHandler) DeleteUser(db *gorm.DB, User *User, id string) (err error) {
 	db.Where("ID = ?", id).Delete(User)
 	return nil
+}
+
+//empty User table
+func (u UserHandler) EmptyUserTable(db *gorm.DB) {
+	db.Unscoped().Where("1 = 1").Delete(&User{})
 }
