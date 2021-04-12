@@ -1,6 +1,6 @@
 steps:
-- name: unit-test
-  args: ['go', 'test', './..', '-v']
-- name: build-app
+# - name: unit-test
+  # args: ['go', 'test', './..', '-v']
+- name: golang
   args: ['go', 'build', '.']
 
