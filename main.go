@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"os"
 
+	hlp "github.com/pamrulla/gagster-feed/helpers"
 	hello "github.com/pamrulla/gagster-feed/pkg"
 	v1 "github.com/pamrulla/gagster-feed/v1"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 )
 
@@ -28,34 +30,47 @@ func Routes() *chi.Mux {
 	router.Route("/api", func(r chi.Router) {
 		r.Mount("/hello", hello.Routes())
 		r.Route("/v1", func(r chi.Router) {
+			r.Post("/login", v1.Login)
 			r.Route("/users", func(r chi.Router) {
-				r.Get("/", v1.GetUsers)
 				r.Post("/", v1.CreateUser)
-				r.Route("/{user_id}", func(r chi.Router) {
-					r.Get("/", v1.GetUser)
-					r.Put("/", v1.UpdateUser)
-					r.Delete("/", v1.DeleteUser)
-				})
-				r.Put("/enable/{user_id}", v1.EnableUser)
-				r.Put("/disable/{user_id}", v1.DisableUser)
-			})
-			r.Get("/gags/{user_id}", v1.GetGags)
-			r.Route("/gags", func(r chi.Router) {
-				r.Post("/", v1.CreateGag)
-				r.Route("/{gag_id}", func(r chi.Router) {
-					r.Get("/", v1.GetGag)
-					r.Put("/", v1.UpdateGag)
-					r.Delete("/", v1.DeleteGag)
+				r.Group(func(r chi.Router) {
+					r.Use(jwtauth.Verifier(hlp.GetTokenAuth()))
+					r.Use(jwtauth.Authenticator)
+					r.Get("/", v1.GetUsers)
+					r.Route("/{user_id}", func(r chi.Router) {
+						r.Get("/", v1.GetUser)
+						r.Put("/", v1.UpdateUser)
+						r.Delete("/", v1.DeleteUser)
+					})
+					r.Put("/enable/{user_id}", v1.EnableUser)
+					r.Put("/disable/{user_id}", v1.DisableUser)
 				})
 			})
-			r.Put("/gags/enable/{gag_id}", v1.EnableUser)
-			r.Put("/gags/disable/{gag_id}", v1.EnableUser)
+			r.Group(func(r chi.Router) {
+				r.Use(jwtauth.Verifier(hlp.GetTokenAuth()))
+				r.Use(jwtauth.Authenticator)
+				r.Get("/gags/{user_id}", v1.GetGags)
+				r.Route("/gags", func(r chi.Router) {
+					r.Post("/", v1.CreateGag)
+					r.Route("/{gag_id}", func(r chi.Router) {
+						r.Get("/", v1.GetGag)
+						r.Put("/", v1.UpdateGag)
+						r.Delete("/", v1.DeleteGag)
+					})
+				})
+				r.Put("/gags/enable/{gag_id}", v1.EnableUser)
+				r.Put("/gags/disable/{gag_id}", v1.EnableUser)
+			})
 
 			r.Route("/hearts/{gag_id}", func(r chi.Router) {
 				r.Get("/", v1.GetHearts)
-				r.Route("/{user_id}", func(r chi.Router) {
-					r.Post("/", v1.CreateHeart)
-					r.Delete("/", v1.DeleteHeart)
+				r.Group(func(r chi.Router) {
+					r.Use(jwtauth.Verifier(hlp.GetTokenAuth()))
+					r.Use(jwtauth.Authenticator)
+					r.Route("/{user_id}", func(r chi.Router) {
+						r.Post("/", v1.CreateHeart)
+						r.Delete("/", v1.DeleteHeart)
+					})
 				})
 			})
 		})
