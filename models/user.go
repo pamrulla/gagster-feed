@@ -22,6 +22,8 @@ type UserHandlerInterface interface {
 	UpdateUser(db *gorm.DB, User *User) (err error)
 	DeleteUser(db *gorm.DB, User *User, id string) (err error)
 	EmptyUserTable(db *gorm.DB)
+	LoginUser(db *gorm.DB, User *User, email string, password string) (err error)
+	IsUserExists(db *gorm.DB, email string) bool
 }
 
 type UserHandler struct{}
@@ -47,6 +49,25 @@ func (u UserHandler) GetUsers(db *gorm.DB, User *Users) (err error) {
 //get user by id
 func (u UserHandler) GetUser(db *gorm.DB, User *User, id string) (err error) {
 	err = db.Where("ID = ?", id).First(User).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+//is user exists
+func (u UserHandler) IsUserExists(db *gorm.DB, email string) bool {
+	var usr User
+	err := db.Where("email = ?", email).First(usr).Error
+	if err == nil {
+		return !false
+	}
+	return !true
+}
+
+//log in user by email and password
+func (u UserHandler) LoginUser(db *gorm.DB, User *User, email string, password string) (err error) {
+	err = db.Where("email = ? AND password = ?", email, password).First(User).Error
 	if err != nil {
 		return err
 	}

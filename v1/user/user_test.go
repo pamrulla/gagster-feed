@@ -3,6 +3,7 @@ package user
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -44,6 +45,14 @@ func (u *MyTestObject) DeleteUser(db *gorm.DB, User *models.User, id string) (er
 }
 func (u *MyTestObject) EmptyUserTable(db *gorm.DB) {
 }
+func (u *MyTestObject) LoginUser(db *gorm.DB, User *models.User, email string, password string) (err error) {
+	args := u.Called(db, User, email, password)
+	return args.Error(0)
+}
+func (u *MyTestObject) IsUserExists(db *gorm.DB, email string) bool {
+	args := u.Called(db, email)
+	return args.Bool(0)
+}
 
 type UserTestSuite struct {
 	suite.Suite
@@ -69,6 +78,7 @@ func (hts *UserTestSuite) SetupTest() {
 		r.Put("/enable/{user_id}", hts.ur.Enable)
 		r.Put("/disable/{user_id}", hts.ur.Disable)
 	})
+	hts.router.Post("/login", hts.ur.LogIn)
 	hts.ts = httptest.NewServer(hts.router)
 }
 
@@ -176,6 +186,7 @@ func (hts *UserTestSuite) TestCreateAUser() {
 		arg := args.Get(1).(*models.User)
 		recievedUser = *arg
 	})
+	hts.mockObj.On("IsUserExists", mock.Anything, user.Email).Return(false)
 	payload, _ := json.Marshal(user)
 
 	// Act
@@ -191,6 +202,7 @@ func (hts *UserTestSuite) TestCreateAUser_WhenUnknownErrorOccured() {
 	// Arrange
 	user := models.User{First_Name: "test first name", Last_Name: "test last name", Email: "testemail@ag.com", Password: "asfd"}
 	hts.mockObj.On("CreateUser", mock.Anything, mock.Anything).Return(gorm.ErrInvaildDB)
+	hts.mockObj.On("IsUserExists", mock.Anything, user.Email).Return(false)
 	payload, _ := json.Marshal(user)
 
 	// Act
@@ -200,6 +212,20 @@ func (hts *UserTestSuite) TestCreateAUser_WhenUnknownErrorOccured() {
 	require.Nil(hts.T(), err)
 	hts.mockObj.AssertExpectations(hts.T())
 	assert.Equal(hts.T(), 500, resp.StatusCode)
+}
+func (hts *UserTestSuite) TestCreateAUser_WhenUserAlreadyExists() {
+	// Arrange
+	user := models.User{First_Name: "test first name", Last_Name: "test last name", Email: "testemail@ag.com", Password: "asfd"}
+	hts.mockObj.On("IsUserExists", mock.Anything, user.Email).Return(true)
+	payload, _ := json.Marshal(user)
+
+	// Act
+	resp, err := helpers.RunRequest("POST", hts.ts, "/users", bytes.NewReader(payload))
+
+	// Assert
+	require.Nil(hts.T(), err)
+	hts.mockObj.AssertExpectations(hts.T())
+	assert.Equal(hts.T(), http.StatusConflict, resp.StatusCode)
 }
 func (hts *UserTestSuite) TestCreateAUser_WhenInvalidDataSent() {
 	// Arrange
@@ -503,7 +529,70 @@ func (hts *UserTestSuite) TestDisableAUser_UserNotFoundToGetUser() {
 	hts.mockObj.AssertExpectations(hts.T())
 	assert.Equal(hts.T(), 404, resp.StatusCode)
 }
+func (hts *UserTestSuite) TestLoginAUser() {
+	// Arrange
+	user := models.User{First_Name: "test first name", Last_Name: "test last name", Email: "testemail@ag.com", Password: "asfd", IsEnabled: true}
+	cred := make(map[string]string)
+	cred["email"] = "pasfd@afd.com"
+	cred["password"] = "asfasfdwfsdf"
+	hts.mockObj.On("LoginUser", mock.Anything, mock.Anything, cred["email"], cred["password"]).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*models.User)
+		*arg = user
+	})
+	payload, _ := json.Marshal(cred)
 
+	// Act
+	resp, err := helpers.RunRequest("POST", hts.ts, "/login", bytes.NewReader(payload))
+
+	// Assert
+	require.Nil(hts.T(), err)
+	hts.mockObj.AssertExpectations(hts.T())
+	assert.Equal(hts.T(), 200, resp.StatusCode)
+	data, err := ioutil.ReadAll(resp.Body)
+	require.Nil(hts.T(), err)
+
+	var actUser map[string]interface{}
+	err = json.Unmarshal(data, &actUser)
+	require.Nil(hts.T(), err)
+	fmt.Printf("%+v\n", actUser)
+}
+func (hts *UserTestSuite) TestLoginAUser_FailedToLogin() {
+	// Arrange
+	cred := make(map[string]string)
+	cred["email"] = "pasfd@afd.com"
+	cred["password"] = "asfasfdwfsdf"
+	hts.mockObj.On("LoginUser", mock.Anything, mock.Anything, cred["email"], cred["password"]).Return(gorm.ErrRecordNotFound)
+	payload, _ := json.Marshal(cred)
+
+	// Act
+	resp, err := helpers.RunRequest("POST", hts.ts, "/login", bytes.NewReader(payload))
+
+	// Assert
+	require.Nil(hts.T(), err)
+	hts.mockObj.AssertExpectations(hts.T())
+	assert.Equal(hts.T(), http.StatusUnauthorized, resp.StatusCode)
+}
+func (hts *UserTestSuite) TestLoginAUser_InvalidData() {
+	// Arrange
+	payload, _ := json.Marshal([]byte(`{"name":what?}`))
+
+	// Act
+	resp, err := helpers.RunRequest("POST", hts.ts, "/login", bytes.NewReader(payload))
+
+	// Assert
+	require.Nil(hts.T(), err)
+	hts.mockObj.AssertExpectations(hts.T())
+	assert.Equal(hts.T(), http.StatusBadRequest, resp.StatusCode)
+}
+func (hts *UserTestSuite) TestLoginAUser_NoPayLoad() {
+	// Act
+	resp, err := helpers.RunRequest("POST", hts.ts, "/login", nil)
+
+	// Assert
+	require.Nil(hts.T(), err)
+	hts.mockObj.AssertExpectations(hts.T())
+	assert.Equal(hts.T(), http.StatusBadRequest, resp.StatusCode)
+}
 func TestUserTestSuite(t *testing.T) {
 	suite.Run(t, new(UserTestSuite))
 }

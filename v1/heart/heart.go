@@ -75,5 +75,5 @@ func (gr *HeartRepo) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Error(w, "Successfully dis-liked gag", http.StatusNotFound)
+	render.JSON(w, r, "Successfully dis-liked gag")
 }

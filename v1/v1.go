@@ -88,3 +88,8 @@ func CreateHeart(w http.ResponseWriter, r *http.Request) {
 func DeleteHeart(w http.ResponseWriter, r *http.Request) {
 	hr.Delete(w, r)
 }
+
+// Login
+func Login(w http.ResponseWriter, r *http.Request) {
+	ur.LogIn(w, r)
+}
