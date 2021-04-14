@@ -35,7 +35,7 @@ func (hts *HelloTestSuite) TestStatusCodeShouldBeEqual200() {
 	resp, _ := helpers.RunRequest("GET", hts.ts, hts.endpoint, nil)
 
 	// Assert
-	assert.Equal(hts.T(), 200, resp.StatusCode)
+	assert.Equal(hts.T(), 201, resp.StatusCode)
 }
 func TestHelloTestSuite(t *testing.T) {
 	suite.Run(t, new(HelloTestSuite))
