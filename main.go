@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,6 +16,40 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 )
+
+type PubSubMessage struct {
+	Data []byte `json:"data"`
+}
+
+// HelloPubSub consumes a Pub/Sub message.
+func HelloPubSub(m PubSubMessage) error {
+	data := make(map[string]interface{})
+	json.Unmarshal(m.Data, &data)
+
+	if st, ok := data["status"]; !ok {
+		log.Printf("No Status found")
+	} else if st == "FAILED" {
+		log.Printf("Status was not success")
+	} else if _, ok := data["results"]; !ok {
+		log.Printf("No Results found")
+	} else {
+		results := data["results"].(map[string]interface{})
+		if _, ok := results["images"]; !ok {
+			log.Printf("No Images found")
+		} else {
+			images := results["images"].([]interface{})
+			log.Printf("%+v\n", images)
+			if len(images) != 1 {
+				log.Printf("Work with only one image")
+			} else {
+				oneImage := images[0].(map[string]interface{})
+				log.Printf("%=v\n", oneImage["name"])
+			}
+		}
+	}
+
+	return nil
+}
 
 func Routes() *chi.Mux {
 	v1.Init()
@@ -50,8 +85,8 @@ func Routes() *chi.Mux {
 				r.Use(jwtauth.Verifier(hlp.GetTokenAuth()))
 				r.Use(jwtauth.Authenticator)
 				r.Get("/gags/{user_id}", v1.GetGags)
+				r.Post("/gags/{user_id}", v1.CreateGag)
 				r.Route("/gags", func(r chi.Router) {
-					r.Post("/", v1.CreateGag)
 					r.Route("/{gag_id}", func(r chi.Router) {
 						r.Get("/", v1.GetGag)
 						r.Put("/", v1.UpdateGag)

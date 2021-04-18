@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/pamrulla/gagster-feed/database"
+	"github.com/pamrulla/gagster-feed/helpers"
 	"github.com/pamrulla/gagster-feed/models"
 	"gorm.io/gorm"
 )
@@ -49,15 +50,70 @@ func (gr *GagRepo) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
-	var u models.Gag
-	err = json.Unmarshal(req, &u)
+	var someData map[string]interface{}
+	err = json.Unmarshal(req, &someData)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	_, ok := someData["file"]
+	if !ok {
+		http.Error(w, "File to upload is not present", http.StatusBadRequest)
+		return
+	}
+	file, _ := someData["file"].(string)
+
+	_, ok = someData["tags"]
+	if !ok {
+		http.Error(w, "Tags are not present", http.StatusBadRequest)
+		return
+	}
+	var tags []string
+	for _, t := range someData["tags"].([]interface{}) {
+		tags = append(tags, t.(string))
+	}
+	if err != nil {
+		http.Error(w, "failed to parse tags", http.StatusBadRequest)
+		return
+	}
+
+	if _, ok := someData["price"]; !ok {
+		http.Error(w, "Price is not present", http.StatusBadRequest)
+		return
+	}
+
+	u := models.Gag{}
+	p, ok := someData["price"].(float64)
+	if !ok {
+		http.Error(w, "Invalid price sent", http.StatusBadRequest)
+		return
+	}
+	u.Price = float32(p)
+
+	// err = json.Unmarshal(req, &u)
+	// if err != nil {
+	// 	http.Error(w, "Invalid data sent", http.StatusBadRequest)
+	// 	return
+	// }
+
 	user_id := chi.URLParam(r, "user_id")
-	u.User_Id, _ = strconv.Atoi(user_id)
+	u.User_Id, err = strconv.Atoi(user_id)
+	if err != nil {
+		http.Error(w, "Invalid User Id sent", http.StatusBadRequest)
+		return
+	}
+
+	path, wd, ht, err := helpers.UploadCloudinary(file, user_id, tags)
+	if err != nil {
+		http.Error(w, "Failed to upload image, please try again...", http.StatusInternalServerError)
+		return
+	}
+
+	u.Path = path
+	u.Width = wd
+	u.Height = ht
+
 	err = models.CreateGag(gr.Db, &u)
 	if err != nil {
 		gr.checkErr(err, w)
