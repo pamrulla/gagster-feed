@@ -6,10 +6,12 @@ import (
 
 type Gag struct {
 	gorm.Model
-	User_Id   int     `gorm:"<-:create;not null"`
-	Path      string  `gorm:"<-:update;not null"`
-	Price     float32 `gorm:"<-:update;not null"`
-	IsEnabled bool    `gorm:"<-:update;default:1"`
+	User_Id   int `gorm:"<-:create;not null"`
+	Path      string
+	Width     int `gorm:"<-:create;not null"`
+	Height    int `gorm:"<-:create;not null"`
+	Price     float32
+	IsEnabled bool `gorm:"<-:update;default:1"`
 }
 
 type Gags []Gag
