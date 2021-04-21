@@ -15,6 +15,7 @@ import (
 func UploadCloudinary(file, user_id string, tags []string) (string, int, int, error) {
 	fmt.Println("Started Uploading file")
 	cld, err := cloudinary.NewFromParams(os.Getenv("CLOUDINARYNAME"), os.Getenv("CLOUDINARYKEY"), os.Getenv("CLOUDINARYSECRET"))
+	// cld, err := cloudinary.NewFromParams("doxkhafkv", "324734846843959", "P1QZWqGVSFaucLqTlWP-gLirdEY")
 	if err != nil {
 		fmt.Println(err.Error())
 		return "", 0, 0, errors.New("failed to upload gag")
@@ -28,6 +29,7 @@ func UploadCloudinary(file, user_id string, tags []string) (string, int, int, er
 	fmt.Printf("tags: %+v\n", tgs)
 	res, err := cld.Upload.Upload(ctx, file, uploader.UploadParams{Folder: user_id, Tags: tgs})
 	if err != nil || res.PublicID == "" {
+		fmt.Printf("Err: %+v\n", err.Error())
 		fmt.Printf("Failed file finished: %+v\n", res)
 		return "", 0, 0, errors.New("failed to upload gag")
 	}

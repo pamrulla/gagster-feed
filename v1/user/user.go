@@ -31,7 +31,7 @@ func (ur *UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 	var users models.Users
 	err := ur.usr.GetUsers(ur.Db, &users)
 	if err != nil {
-		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+		helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 		return
 	}
 	render.JSON(w, r, users)
@@ -40,23 +40,24 @@ func (ur *UserRepo) GetUsers(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) Create(w http.ResponseWriter, r *http.Request) {
 	req, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 	var u models.User
 	err = json.Unmarshal(req, &u)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
+
 	isUserExists := ur.usr.IsUserExists(ur.Db, u.Email)
 	if isUserExists {
-		http.Error(w, "User with same email id already exists", http.StatusConflict)
+		helpers.NewError(w, r, "User with same email id already exists", http.StatusConflict)
 		return
 	}
 	err = ur.usr.CreateUser(ur.Db, &u)
 	if err != nil {
-		http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+		helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 		return
 	}
 	render.JSON(w, r, "Successfully added new user")
@@ -65,23 +66,23 @@ func (ur *UserRepo) Create(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) Update(w http.ResponseWriter, r *http.Request) {
 	req, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 	var u models.User
 	err = json.Unmarshal(req, &u)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 
 	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -95,10 +96,10 @@ func (ur *UserRepo) Delete(w http.ResponseWriter, r *http.Request) {
 	err := ur.usr.DeleteUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -111,10 +112,10 @@ func (ur *UserRepo) Get(w http.ResponseWriter, r *http.Request) {
 	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -127,10 +128,10 @@ func (ur *UserRepo) Enable(w http.ResponseWriter, r *http.Request) {
 	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -138,10 +139,10 @@ func (ur *UserRepo) Enable(w http.ResponseWriter, r *http.Request) {
 	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -154,10 +155,10 @@ func (ur *UserRepo) Disable(w http.ResponseWriter, r *http.Request) {
 	err := ur.usr.GetUser(ur.Db, &u, vars)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -165,10 +166,10 @@ func (ur *UserRepo) Disable(w http.ResponseWriter, r *http.Request) {
 	err = ur.usr.UpdateUser(ur.Db, &u)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "User not found", http.StatusNotFound)
+			helpers.NewError(w, r, "User not found", http.StatusNotFound)
 			return
 		} else {
-			http.Error(w, "Something went wrong, please try again", http.StatusInternalServerError)
+			helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -178,26 +179,26 @@ func (ur *UserRepo) Disable(w http.ResponseWriter, r *http.Request) {
 func (ur *UserRepo) LogIn(w http.ResponseWriter, r *http.Request) {
 	req, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 	var cred map[string]string
 
 	err = json.Unmarshal(req, &cred)
 	if err != nil {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 	_, e_ok := cred["email"]
 	_, p_ok := cred["password"]
 	if !e_ok || !p_ok {
-		http.Error(w, "Invalid data sent", http.StatusBadRequest)
+		helpers.NewError(w, r, "Invalid data sent", http.StatusBadRequest)
 		return
 	}
 	var u models.User
 	err = ur.usr.LoginUser(ur.Db, &u, cred["email"], cred["password"])
 	if err != nil {
-		http.Error(w, "Failed to authenticate, please check your email and password", http.StatusUnauthorized)
+		helpers.NewError(w, r, "Failed to authenticate, please check your email and password", http.StatusUnauthorized)
 		return
 	}
 	result := make(map[string]interface{})

@@ -1,15 +1,17 @@
 package models
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 )
 
 type User struct {
 	gorm.Model
-	First_Name string `gorm:"<-:update;not null"`
-	Last_Name  string `gorm:"<-:update;not null"`
+	First_Name string `gorm:"not null"`
+	Last_Name  string `gorm:"not null"`
 	Email      string `gorm:"<-:create;not null"`
-	Password   string `gorm:"<-:update;not null"`
+	Password   string `gorm:"not null"`
 	IsEnabled  bool   `gorm:"<-:update;default:0"`
 }
 
@@ -58,7 +60,8 @@ func (u UserHandler) GetUser(db *gorm.DB, User *User, id string) (err error) {
 //is user exists
 func (u UserHandler) IsUserExists(db *gorm.DB, email string) bool {
 	var usr User
-	err := db.Where("email = ?", email).First(usr).Error
+	fmt.Println(email)
+	err := db.Where("email = ?", email).First(&usr).Error
 	if err == nil {
 		return !false
 	}
