@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,51 +12,28 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 )
 
-type PubSubMessage struct {
-	Data []byte `json:"data"`
-}
-
-// HelloPubSub consumes a Pub/Sub message.
-func HelloPubSub(m PubSubMessage) error {
-	data := make(map[string]interface{})
-	json.Unmarshal(m.Data, &data)
-
-	if st, ok := data["status"]; !ok {
-		log.Printf("No Status found")
-	} else if st == "FAILED" {
-		log.Printf("Status was not success")
-	} else if _, ok := data["results"]; !ok {
-		log.Printf("No Results found")
-	} else {
-		results := data["results"].(map[string]interface{})
-		if _, ok := results["images"]; !ok {
-			log.Printf("No Images found")
-		} else {
-			images := results["images"].([]interface{})
-			log.Printf("%+v\n", images)
-			if len(images) != 1 {
-				log.Printf("Work with only one image")
-			} else {
-				oneImage := images[0].(map[string]interface{})
-				log.Printf("%=v\n", oneImage["name"])
-			}
-		}
-	}
-
-	return nil
-}
-
 func Routes() *chi.Mux {
 	v1.Init()
 
+	// router.Use(Cors)
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowedHeaders:   []string{"X-PINGOTHER", "Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		Debug:            true,
+	})
 	router := chi.NewRouter()
 	router.Use(
 		render.SetContentType(render.ContentTypeJSON), // Set Content-Type header as application/json
-		middleware.Logger,          // Log API request calls
+		middleware.Logger, // Log API request calls
+		cors.Handler,
 		middleware.RedirectSlashes, // Redirect slashes to no slash URL versions
 		middleware.Recoverer,       // Recover from panics without crashing the server
 	)
