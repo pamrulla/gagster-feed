@@ -8,10 +8,9 @@ type Gag struct {
 	gorm.Model
 	User_Id     int `gorm:"<-:create;not null"`
 	Path        string
-	Width       int `gorm:"<-:create;not null"`
-	Height      int `gorm:"<-:create;not null"`
 	Price       float32
 	IsEnabled   bool `gorm:"<-:update;default:1"`
+	Hearts      bool `gorm:"<-:update;default:0"`
 	Title       string
 	Description string
 }
@@ -48,6 +47,16 @@ func GetGag(db *gorm.DB, gag *Gag, id string) (err error) {
 //update Gag
 func UpdateGag(db *gorm.DB, gag *Gag) (err error) {
 	db.Save(gag)
+	return nil
+}
+
+func AddAHeartGag(db *gorm.DB, gag_id int) (err error) {
+	db.Table("gags").Where("id = ?", gag_id).UpdateColumn("Hearts", gorm.Expr("Hearts + ?", 1))
+	return nil
+}
+
+func DeleteAHeartGag(db *gorm.DB, gag_id int) (err error) {
+	db.Table("gags").Where("id = ?", gag_id).UpdateColumn("Hearts", gorm.Expr("Hearts - ?", 1))
 	return nil
 }
 

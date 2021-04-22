@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/pamrulla/gagster-feed/helpers"
 	hlp "github.com/pamrulla/gagster-feed/helpers"
 	hello "github.com/pamrulla/gagster-feed/pkg"
 	v1 "github.com/pamrulla/gagster-feed/v1"
@@ -19,6 +20,7 @@ import (
 
 func Routes() *chi.Mux {
 	v1.Init()
+	helpers.InitiCloudinary()
 
 	// router.Use(Cors)
 	cors := cors.New(cors.Options{
@@ -57,14 +59,16 @@ func Routes() *chi.Mux {
 					r.Put("/disable/{user_id}", v1.DisableUser)
 				})
 			})
+			r.Get("/gags/feed", v1.Feed)
+			r.Get("/gags/author/{user_id}", v1.GetAuthorGags)
+			r.Get("/gags/{gag_id}", v1.GetGag)
+			r.Get("/gags/tags", v1.GagsWithTags)
 			r.Group(func(r chi.Router) {
 				r.Use(jwtauth.Verifier(hlp.GetTokenAuth()))
 				r.Use(jwtauth.Authenticator)
-				r.Get("/gags/{user_id}", v1.GetGags)
 				r.Post("/gags/{user_id}", v1.CreateGag)
 				r.Route("/gags", func(r chi.Router) {
 					r.Route("/{gag_id}", func(r chi.Router) {
-						r.Get("/", v1.GetGag)
 						r.Put("/", v1.UpdateGag)
 						r.Delete("/", v1.DeleteGag)
 					})

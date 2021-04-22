@@ -14,13 +14,18 @@ import (
 )
 
 type HeartRepo struct {
-	Db *gorm.DB
+	Db    *gorm.DB
+	GagDb *gorm.DB
 }
 
 func New() *HeartRepo {
 	db := database.InitDb()
 	db.AutoMigrate(models.Heart{})
-	return &HeartRepo{Db: db}
+
+	gagDB := database.InitDb()
+	database.Db.AutoMigrate(models.Gag{})
+
+	return &HeartRepo{Db: db, GagDb: gagDB}
 }
 
 func (gr *HeartRepo) checkErr(err error, w http.ResponseWriter, r *http.Request) {
@@ -62,7 +67,7 @@ func (gr *HeartRepo) Create(w http.ResponseWriter, r *http.Request) {
 		gr.checkErr(err, w, r)
 		return
 	}
-
+	models.AddAHeartGag(gr.GagDb, gag_id)
 	render.JSON(w, r, "Successfully liked the gag")
 }
 
@@ -75,6 +80,7 @@ func (gr *HeartRepo) Delete(w http.ResponseWriter, r *http.Request) {
 		gr.checkErr(err, w, r)
 		return
 	}
-
+	gi, _ := strconv.Atoi(gag_id)
+	models.AddAHeartGag(gr.GagDb, gi)
 	render.JSON(w, r, "Successfully dis-liked gag")
 }

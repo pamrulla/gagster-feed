@@ -93,3 +93,16 @@ func DeleteHeart(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	ur.LogIn(w, r)
 }
+
+// Cloudinary
+func Feed(w http.ResponseWriter, r *http.Request) {
+	gr.Feed(w, r)
+}
+
+func GetAuthorGags(w http.ResponseWriter, r *http.Request) {
+	gr.GetAuthorGags(w, r)
+}
+
+func GagsWithTags(w http.ResponseWriter, r *http.Request) {
+	gr.GagsWithTags(w, r)
+}

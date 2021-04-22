@@ -15,6 +15,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type GetGagsResult struct {
+	Path       string
+	AthorId    string
+	AuthorName string
+	Width      int
+	Height     int
+	Price      float32
+	Title      string
+	Descrption string
+	Tags       []string
+	Hearts     int
+}
+
 type GagRepo struct {
 	Db *gorm.DB
 }
@@ -118,15 +131,13 @@ func (gr *GagRepo) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path, wd, ht, err := helpers.UploadCloudinary(file, user_id, tags)
+	path, err := helpers.UploadCloudinary(file, user_id, tags)
 	if err != nil {
 		helpers.NewError(w, r, "Failed to upload image, please try again...", http.StatusInternalServerError)
 		return
 	}
 
 	u.Path = path
-	u.Width = wd
-	u.Height = ht
 	u.Title = title
 	u.Description = description
 
@@ -217,4 +228,158 @@ func (gr *GagRepo) Disable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.JSON(w, r, "Successfully disabled gag")
+}
+
+type GagsAsset struct {
+	Id          int
+	First_name  string
+	Last_name   string
+	User_id     int
+	Path        string
+	Price       float32
+	Title       string
+	Description string
+	Hearts      int
+	Width       int
+	Height      int
+	Tags        []string `gorm:"type:text"`
+}
+type GagsResult struct {
+	Gags       []GagsAsset
+	NextCursor string `json:"next_cursor"`
+}
+
+func (gr *GagRepo) Feed(w http.ResponseWriter, r *http.Request) {
+	cld_gags, err := helpers.FeedCloudinary(r.URL.Query().Get("next_cursor"))
+	if err != nil {
+		helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
+		return
+	}
+
+	if cld_gags.Assets == nil || len(cld_gags.Assets) == 0 {
+		render.JSON(w, r, GagsResult{})
+		return
+	}
+
+	pathSearch := ""
+	arrLen := len(cld_gags.Assets)
+	for i, g := range cld_gags.Assets {
+		pathSearch += "path='" + g.PublicID + "'"
+		if i != (arrLen - 1) {
+			pathSearch += " OR "
+		}
+	}
+
+	var result GagsResult
+	gr.Db.Raw(`SELECT u.first_name, u.last_name, g.id, g.user_id, g.path, g.price, g.title, g.description, g.hearts  
+		FROM gags g, users u
+		WHERE (` + pathSearch + `) AND g.user_id = u.id ORDER BY g.created_at DESC`).Scan(&result.Gags)
+
+	for i, _ := range result.Gags {
+		for _, g := range cld_gags.Assets {
+			if result.Gags[i].Path == g.PublicID {
+				result.Gags[i].Width = g.Width
+				result.Gags[i].Height = g.Height
+				result.Gags[i].Tags = append(result.Gags[i].Tags, g.Tags...)
+			}
+		}
+	}
+	if len(result.Gags) < helpers.MAX_GAGS {
+		result.NextCursor = ""
+	} else {
+		result.NextCursor = cld_gags.NextCursor
+	}
+
+	render.JSON(w, r, result)
+}
+
+func (gr *GagRepo) GetAuthorGags(w http.ResponseWriter, r *http.Request) {
+	user_id := chi.URLParam(r, "user_id")
+	cld_gags, err := helpers.GagsOfAuthor(user_id, r.URL.Query().Get("next_cursor"))
+
+	if err != nil {
+		helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
+		return
+	}
+
+	if cld_gags.Assets == nil || len(cld_gags.Assets) == 0 {
+		render.JSON(w, r, GagsResult{})
+		return
+	}
+
+	pathSearch := ""
+	arrLen := len(cld_gags.Assets)
+	for i, g := range cld_gags.Assets {
+		pathSearch += "path='" + g.PublicID + "'"
+		if i != (arrLen - 1) {
+			pathSearch += " OR "
+		}
+	}
+
+	var result GagsResult
+	gr.Db.Raw(`SELECT u.first_name, u.last_name, g.id, g.user_id, g.path, g.price, g.title, g.description, g.hearts  
+		FROM gags g, users u
+		WHERE (` + pathSearch + `) AND g.user_id = u.id ORDER BY g.created_at DESC`).Scan(&result.Gags)
+
+	for i, _ := range result.Gags {
+		for _, g := range cld_gags.Assets {
+			if result.Gags[i].Path == g.PublicID {
+				result.Gags[i].Width = g.Width
+				result.Gags[i].Height = g.Height
+				result.Gags[i].Tags = append(result.Gags[i].Tags, g.Tags...)
+			}
+		}
+	}
+	if len(result.Gags) < helpers.MAX_GAGS {
+		result.NextCursor = ""
+	} else {
+		result.NextCursor = cld_gags.NextCursor
+	}
+
+	render.JSON(w, r, result)
+}
+
+func (gr *GagRepo) GagsWithTags(w http.ResponseWriter, r *http.Request) {
+	cld_gags, err := helpers.GagsWithTags(r.URL.Query().Get("tags"), r.URL.Query().Get("next_cursor"))
+
+	if err != nil {
+		helpers.NewError(w, r, "Something went wrong, please try again", http.StatusInternalServerError)
+		return
+	}
+
+	if cld_gags.Assets == nil || len(cld_gags.Assets) == 0 {
+		render.JSON(w, r, GagsResult{})
+		return
+	}
+
+	pathSearch := ""
+	arrlen := len(cld_gags.Assets)
+	for i, g := range cld_gags.Assets {
+		pathSearch += "path='" + g.PublicID + "'"
+		if i != (arrlen - 1) {
+			pathSearch += " OR "
+		}
+	}
+
+	var result GagsResult
+	gr.Db.Raw(`SELECT u.first_name, u.last_name, g.id, g.user_id, g.path, g.price, g.title, g.description, g.hearts  
+		FROM gags g, users u
+		WHERE (` + pathSearch + `) AND g.user_id = u.id ORDER BY g.created_at DESC`).Scan(&result.Gags)
+
+	for i, _ := range result.Gags {
+		for _, g := range cld_gags.Assets {
+			if result.Gags[i].Path == g.PublicID {
+				result.Gags[i].Width = g.Width
+				result.Gags[i].Height = g.Height
+				result.Gags[i].Tags = append(result.Gags[i].Tags, g.Tags...)
+			}
+		}
+	}
+	if len(result.Gags) < helpers.MAX_GAGS {
+		result.NextCursor = ""
+	} else {
+		result.NextCursor = cld_gags.NextCursor
+	}
+
+	render.JSON(w, r, result)
 }
